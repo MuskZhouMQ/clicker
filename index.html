@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <link rel="icon" href="favicon.svg" type="image/svg+xml">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实时点击计数器</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f4f4f4;
+        }
+        #container {
+            text-align: center;
+            margin-top: auto;
+            margin-bottom: auto;
+        }
+        #clickCount {
+            font-size: 24px;
+            margin-bottom: 20px;
+        }
+        #clickButton {
+            padding: 20px 40px;
+            font-size: 20px;
+            cursor: pointer;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        #clickButton:hover {
+            background-color: #0056b3;
+        }
+        #warningMessage {
+            color: red;
+            font-size: 18px;
+            margin-top: 10px;
+            display: none;
+        }
+        footer {
+            text-align: center;
+            font-size: 14px;
+            color: #888;
+            width: 100%;
+            padding: 10px 0;
+            background-color: #f4f4f4;
+        }
+        footer a {
+            color: #888;
+            text-decoration: none;
+        }
+        footer a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <div id="clickCount">点击次数: 0</div>
+        <button id="clickButton">点击我！</button>
+        <div id="warningMessage">你的手速太快啦，休息一下吧。</div>
+    </div>
+
+    <footer>
+        <a href="https://beian.miit.gov.cn" target="_blank">沪ICP备2024080223号-5</a>
+        <div>©️ CopyRights TUF.Tech & Made By MuskZhou</div>
+    </footer>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket = io();
+        const clickButton = document.getElementById('clickButton');
+        const clickCount = document.getElementById('clickCount');
+        const warningMessage = document.getElementById('warningMessage');
+
+        let clickTimestamps = [];
+        let isBanned = false;
+
+        // 点击按钮时发送点击事件
+        clickButton.addEventListener('click', () => {
+            if (isBanned) return; // 如果已被封禁，禁止点击
+
+            const now = Date.now();
+            clickTimestamps.push(now);
+
+            // 保留最近1秒内的点击记录
+            clickTimestamps = clickTimestamps.filter(timestamp => now - timestamp <= 1000);
+
+            if (clickTimestamps.length > 10) {
+                warningMessage.style.display = 'block';
+                isBanned = true; // 设置封禁标志
+            } else {
+                warningMessage.style.display = 'none';
+                socket.emit('buttonClicked');
+            }
+        });
+
+        // 实时更新点击次数
+        socket.on('updateCount', (count) => {
+            clickCount.textContent = '点击次数: ' + count;
+        });
+
+        // 接收封禁通知
+        socket.on('banned', () => {
+            isBanned = true;
+            warningMessage.style.display = 'block';
+        });
+    </script>
+</body>
+</html>
