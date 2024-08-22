@@ -6,6 +6,7 @@
     server.js
 
 ### 第一步
+进入网站根目录
 ```
 npm init -y
 npm install express socket.io
